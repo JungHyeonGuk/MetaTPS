@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Services.Authentication;
+using Unity.Services.Core;
 
 public class SignUpPanelController : PanelBase 
 {
@@ -15,6 +16,7 @@ public class SignUpPanelController : PanelBase
     [SerializeField] InputSecretContainer confirmPasswordInput;
     [SerializeField] ErrorTextContainer confirmPasswordErrorText;
     [SerializeField] BtnContainer signUpBtn;
+    [SerializeField] ErrorTextContainer signupErrorText;
     [SerializeField] RectTransform guideline;
 
     string normalHex;
@@ -28,7 +30,7 @@ public class SignUpPanelController : PanelBase
     {
         base.Init();
         closeBtn.btn.AddEvent(OnClickCloseBtn);
-        signUpBtn.btn.AddEvent(OnClickSignUpBtn);
+        signUpBtn.btn.AddEvent(async () => await OnClickSignUpBtn());
 
         usernameInput.input.AddValueChangedEvent(OnValueChangedUsernameInput);
         usernameInput.input.AddSelectEvent(OnSelectUsernameInput);
@@ -52,6 +54,7 @@ public class SignUpPanelController : PanelBase
         usernameInput.ResetInput();
         passwordInput.ResetInput();
         confirmPasswordInput.ResetInput();
+        signupErrorText.text.text = string.Empty;
     }
 
     void OnClickCloseBtn() 
@@ -184,22 +187,62 @@ public class SignUpPanelController : PanelBase
         signUpBtn.btn.interactable = isAllFilled && isUsernameValid && isPasswordValid && isConfirmPasswordValid;
     }
 
-    async void OnClickSignUpBtn() 
+    async Awaitable OnClickSignUpBtn() 
     {
         PanelManager.Instance.loading.Show();
         (bool ok, Exception error) = await Authentication.Instance.SignUpUsernameAsync(usernameInput.input.text, passwordInput.input.text);
 
         if (!ok)
         {
-            Debug.LogError(error.Message);
+            string errorMessage = GetSingupErrorMessage(error);
+            signupErrorText.text.text = errorMessage;
             PanelManager.Instance.loading.Hide();
             return;
         }
 
+        await Authentication.Instance.SignOutAsync();
+
         PanelManager.Instance.loading.Hide();
         PanelManager.Instance.auth.Show();
         Hide();
+    }
 
+    string GetSingupErrorMessage(Exception error) 
+    {
+        if (error is AuthenticationException authError) 
+        {
+            if (authError.ErrorCode == AuthenticationErrorCodes.InvalidParameters) 
+            {
+                return "Invalid parameters";
+            }
+            else if (authError.ErrorCode == AuthenticationErrorCodes.ClientInvalidUserState) 
+            {
+                return "Account already signed in";
+            }
+            else 
+            {
+                return authError.Message;
+            }
+        }
+        else if (error is RequestFailedException requestError) 
+        {
+            if (requestError.ErrorCode == CommonErrorCodes.Conflict) 
+            {
+                return "Username already exists";
+            }
+            else if (requestError.ErrorCode == CommonErrorCodes.TransportError)
+            {
+                return "Network error. Please try again.";
+            }
+            else 
+            {
+                return requestError.Message;
+            }
+        }
+        else 
+        {
+            return error.Message;
+        }
     }
 
 

@@ -20,4 +20,13 @@ public class InputContainer : MonoBehaviour
 
         errorOutline.SetActive(false);
     }
+
+    public void SetText(string text)
+    {
+        input.SetTextWithoutNotify(text);
+        input.caretPosition = text.Length;
+        input.stringPosition = text.Length;
+        input.selectionAnchorPosition = text.Length;
+        input.selectionFocusPosition = text.Length;
+    }
 }

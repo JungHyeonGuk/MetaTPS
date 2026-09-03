@@ -57,4 +57,24 @@ public class Authentication : MonoSingleton<Authentication>
             return (false, e);
         }
     }
+
+    public async Awaitable<(bool ok, Exception error)> SignOutAsync()
+    {
+        (bool ok, Exception error) = await EnsureInitializedAsync();
+        if (!ok) return (false, error);
+
+        try
+        {
+            if (!AuthenticationService.Instance.IsSignedIn) 
+            {
+                return (true, null);
+            }
+            AuthenticationService.Instance.SignOut(true);
+            return (true, null);
+        }
+        catch (Exception e)
+        {
+            return (false, e);
+        }
+    }
 }

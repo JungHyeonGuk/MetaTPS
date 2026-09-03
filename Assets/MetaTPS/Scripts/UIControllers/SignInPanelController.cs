@@ -1,3 +1,6 @@
+using System;
+using Unity.Services.Authentication;
+using Unity.Services.Core;
 using UnityEngine;
 
 public class SignInPanelController : PanelBase 
@@ -18,7 +21,7 @@ public class SignInPanelController : PanelBase
         usernameInput.input.AddValueChangedEvent(OnValueChangedInput);
         passwordInput.input.AddValueChangedEvent(OnValueChangedInput);
 
-        signInBtn.btn.AddEvent(OnClickSignInBtn);
+        signInBtn.btn.AddEvent(async () => await OnClickSignInBtn());
     }
 
 
@@ -27,6 +30,12 @@ public class SignInPanelController : PanelBase
         usernameInput.ResetInput();
         passwordInput.ResetInput();
         CheckSignInBtn();
+        errorText.text.text = string.Empty;
+    }
+
+    void OnDestroy()
+    {
+        _ = Authentication.Instance.SignOutAsync();
     }
 
     void OnClickCloseBtn() 
@@ -46,10 +55,61 @@ public class SignInPanelController : PanelBase
             && !string.IsNullOrWhiteSpace(passwordInput.input.text);
     }
 
-    void OnClickSignInBtn() 
+    public async Awaitable OnClickSignInBtn() 
     {
-        // Sign In
+        PanelManager.Instance.loading.Show();
+        (bool ok, Exception error) = await Authentication.Instance.SignInUsernameAsync(usernameInput.input.text, passwordInput.input.text);
+        PanelManager.Instance.loading.Hide();
+
+        if (!ok)
+        {
+            errorText.text.text = GetSinginErrorMessage(error);
+            return;
+        }
+
+        PanelManager.Instance.home.Show();
+        Hide();
     }
 
-
+    string GetSinginErrorMessage(Exception error) 
+    {
+        if (error is AuthenticationException authError) 
+        {
+            if (authError.ErrorCode == AuthenticationErrorCodes.InvalidParameters) 
+            {
+                return "Please check your username and password.";
+            }
+            else if (authError.ErrorCode == AuthenticationErrorCodes.ClientInvalidUserState) 
+            {
+                return "You are already signed in";
+            }
+            else 
+            {
+                return authError.Message;
+            }
+        }
+        else if (error is RequestFailedException requestError) 
+        {
+            if (requestError.ErrorCode == CommonErrorCodes.Conflict) 
+            {
+                return "Username already exists";
+            }
+            else if (requestError.ErrorCode == CommonErrorCodes.TransportError)
+            {
+                return "Network error. Please try again.";
+            }
+            else if (requestError.ErrorCode == CommonErrorCodes.TooManyRequests)
+            {
+                return "Too many attempts. Please wait and try again.";
+            }
+            else 
+            {
+                return requestError.Message;
+            }
+        }
+        else 
+        {
+            return error.Message;
+        }
+    }
 }

@@ -15,6 +15,12 @@ public static class Extension
 		input.onValueChanged.AddListener(action);
 	}
 
+	public static void AddSubmitEvent(this TMP_InputField input, UnityAction<string> action)
+	{
+		input.onSubmit.RemoveAllListeners();
+		input.onSubmit.AddListener(action);
+	}
+
 	public static void AddSelectEvent(this TMP_InputField input, UnityAction<string> action)
 	{
 		input.onSelect.RemoveAllListeners();
