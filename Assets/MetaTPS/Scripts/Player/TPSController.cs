@@ -16,28 +16,22 @@ public class TPSController : MonoBehaviour
     [SerializeField] float minPitch = -80f;
     [SerializeField] float maxPitch = 70f;
 
-    InputAction lookAction;
-    InputAction aimAction;
-    InputAction moveAction;
+    InputAction lookAction, aimAction, moveAction;
     Vector2 lockedMousePosition;
-    Vector2 moveInput;
-    float cameraYaw;
-    float cameraPitch;
+    Vector3 moveDir;
 
 
 
     void Start()
     {
-        var playerMap = inputActionAsset.FindActionMap("Player");
-        lookAction = playerMap.FindAction("Look");
-        aimAction = playerMap.FindAction("Aim");
-        moveAction = playerMap.FindAction("Move");
+        var map = inputActionAsset.FindActionMap("Player");
+        lookAction = map.FindAction("Look");
+        aimAction = map.FindAction("Aim");
+        moveAction = map.FindAction("Move");
 
-        Vector3 euler = cameraArm.localEulerAngles;
-        cameraPitch = NormalizePitch(euler.x);
-        cameraYaw = euler.y;
-
-        AttachSceneCamera();
+        Transform cam = Camera.main.transform;
+        cam.SetParent(cameraPivot);
+        cam.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
     }
 
     void OnDisable()
@@ -47,111 +41,47 @@ public class TPSController : MonoBehaviour
 
     void Update()
     {
-        ReadMoveInput();
-        HandleLook();
-        RotateCharacter();
-    }
+        Vector2 input = moveAction.ReadValue<Vector2>();
+        Vector3 forward = Vector3.ProjectOnPlane(cameraArm.forward, Vector3.up).normalized;
+        Vector3 right = Vector3.ProjectOnPlane(cameraArm.right, Vector3.up).normalized;
 
-    void FixedUpdate()
-    {
-        Vector3 planarVelocity = GetCameraPlanarMoveDirection() * moveSpeed;
-        Vector3 velocity = planarVelocity;
-        velocity.y = characterRigidbody.linearVelocity.y;
-        characterRigidbody.linearVelocity = velocity;
-    }
+        moveDir = Vector3.ClampMagnitude(forward * input.y + right * input.x, 1f);
+        bool isMove = moveDir.sqrMagnitude > 0.01f;
+        animator.SetBool("IsMove", isMove);
 
-    void ReadMoveInput()
-    {
-        moveInput = moveAction.ReadValue<Vector2>();
-        if (moveInput.sqrMagnitude > 1f) 
+        if (isMove)
         {
-            moveInput.Normalize();
+            characterBody.rotation = Quaternion.Slerp(
+                characterBody.rotation, Quaternion.LookRotation(moveDir), rotationSpeed * Time.deltaTime);
         }
-        if (animator != null)
-        {
-            animator.SetBool("IsMove", moveInput.sqrMagnitude > 0.01f);
-        }
-    }
 
-    void HandleLook()
-    {
         if (aimAction.WasPressedThisFrame())
         {
             lockedMousePosition = Mouse.current.position.ReadValue();
             Cursor.lockState = CursorLockMode.Locked;
         }
-
-        if (aimAction.WasReleasedThisFrame())
+        else if (aimAction.WasReleasedThisFrame())
         {
             Cursor.lockState = CursorLockMode.None;
             Mouse.current.WarpCursorPosition(lockedMousePosition);
         }
 
-        if (aimAction.IsPressed()) 
-        {
-            Vector2 mouseDelta = lookAction.ReadValue<Vector2>() * lookSensitivity;
-            cameraYaw += mouseDelta.x;
-            cameraPitch = Mathf.Clamp(cameraPitch - mouseDelta.y, minPitch, maxPitch);
-            cameraArm.localRotation = Quaternion.Euler(cameraPitch, cameraYaw, 0f);
-        }
+        if (!aimAction.IsPressed())
+            return;
+
+        Vector2 delta = lookAction.ReadValue<Vector2>() * lookSensitivity;
+        cameraArm.Rotate(Vector3.up, delta.x, Space.World);
+        cameraArm.Rotate(Vector3.right, -delta.y, Space.Self);
+
+        Vector3 angles = cameraArm.eulerAngles;
+        float pitch = Mathf.Clamp(Mathf.DeltaAngle(0f, angles.x), minPitch, maxPitch);
+        cameraArm.rotation = Quaternion.Euler(pitch, angles.y, 0f);
     }
 
-    void RotateCharacter()
+    void FixedUpdate()
     {
-        Vector3 moveDir = GetCameraPlanarMoveDirection();
-
-        if (moveDir.sqrMagnitude >= 0.001f) 
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDir, Vector3.up);
-            float t = 1f - Mathf.Exp(-rotationSpeed * Time.deltaTime);
-            characterBody.rotation = Quaternion.Slerp(characterBody.rotation, targetRotation, t);
-        }
-    }
-
-    Vector3 GetCameraPlanarMoveDirection()
-    {
-        if (moveInput.sqrMagnitude >= 0.0001f) 
-        {
-            Vector3 forward = Flatten(cameraArm.forward);
-            Vector3 right = Flatten(cameraArm.right);
-            Vector3 moveDir = forward * moveInput.y + right * moveInput.x;
-            if (moveDir.sqrMagnitude > 1f) 
-            {
-                moveDir.Normalize();
-            } 
-            return moveDir;
-        }
-        else 
-        {
-            return Vector3.zero;
-        }
-    }
-
-    static Vector3 Flatten(Vector3 direction)
-    {
-        direction.y = 0f;
-        
-        if (direction.sqrMagnitude < 0.001f) 
-        {
-            return Vector3.zero;
-        }
-        else 
-        {
-            return direction.normalized;
-        }
-    }
-
-    static float NormalizePitch(float pitch)
-    {
-        if (pitch > 180f)
-            pitch -= 360f;
-        return pitch;
-    }
-
-    void AttachSceneCamera()
-    {
-        Transform camTransform = Camera.main.transform;
-        camTransform.SetParent(cameraPivot);
-        camTransform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+        Vector3 velocity = moveDir * moveSpeed;
+        velocity.y = characterRigidbody.linearVelocity.y;
+        characterRigidbody.linearVelocity = velocity;
     }
 }
