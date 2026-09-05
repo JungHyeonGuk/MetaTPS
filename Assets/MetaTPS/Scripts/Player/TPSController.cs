@@ -17,11 +17,15 @@ public class TPSController : MonoBehaviour
     [SerializeField] float cameraCollisionRadius = 0.2f;
     [SerializeField] float minCameraDistance = 0.15f;
     [SerializeField] float cameraReturnSpeed = 12f;
+    [SerializeField] float jumpSpeed = 6f;
 
-    InputAction lookAction, aimAction, moveAction;
+    InputAction lookAction, aimAction, moveAction, jumpAction;
     Vector2 lockedMousePosition;
     Vector3 moveDir;
     float desiredCameraDistance;
+    bool jumpPressed;
+
+
 
     void Start()
     {
@@ -29,6 +33,7 @@ public class TPSController : MonoBehaviour
         lookAction = map.FindAction("Look");
         aimAction = map.FindAction("Aim");
         moveAction = map.FindAction("Move");
+        jumpAction = map.FindAction("Jump");
 
         Transform cam = Camera.main.transform;
         cam.SetParent(cameraPivot);
@@ -59,6 +64,9 @@ public class TPSController : MonoBehaviour
             characterBody.rotation = Quaternion.Slerp(
                 characterBody.rotation, Quaternion.LookRotation(moveDir), rotationSpeed * Time.deltaTime);
         }
+
+        if (jumpAction.WasPressedThisFrame())
+            jumpPressed = true;
 
         if (aimAction.WasPressedThisFrame())
         {
@@ -107,6 +115,21 @@ public class TPSController : MonoBehaviour
     {
         Vector3 velocity = moveDir * moveSpeed;
         velocity.y = characterRigidbody.linearVelocity.y;
+
+        if (jumpPressed)
+        {
+            jumpPressed = false;
+            if (IsGrounded())
+                velocity.y = jumpSpeed;
+        }
+
         characterRigidbody.linearVelocity = velocity;
+    }
+
+    bool IsGrounded()
+    {
+        return Physics.Raycast(
+                   characterRigidbody.position + Vector3.up * 0.2f, Vector3.down, out RaycastHit hit, 0.3f)
+               && hit.rigidbody != characterRigidbody;
     }
 }
