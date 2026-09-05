@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(Rigidbody))]
 public class TPSController : MonoBehaviour
 {
     [SerializeField] Transform characterBody;
@@ -15,12 +14,14 @@ public class TPSController : MonoBehaviour
     [SerializeField] float rotationSpeed = 14f;
     [SerializeField] float minPitch = -80f;
     [SerializeField] float maxPitch = 70f;
+    [SerializeField] float cameraCollisionRadius = 0.2f;
+    [SerializeField] float minCameraDistance = 0.15f;
+    [SerializeField] float cameraReturnSpeed = 12f;
 
     InputAction lookAction, aimAction, moveAction;
     Vector2 lockedMousePosition;
     Vector3 moveDir;
-
-
+    float desiredCameraDistance;
 
     void Start()
     {
@@ -32,6 +33,10 @@ public class TPSController : MonoBehaviour
         Transform cam = Camera.main.transform;
         cam.SetParent(cameraPivot);
         cam.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+        if (cam.TryGetComponent(out Camera camera))
+            camera.nearClipPlane = Mathf.Min(camera.nearClipPlane, 0.15f);
+
+        desiredCameraDistance = Mathf.Abs(cameraPivot.localPosition.z);
     }
 
     void OnDisable()
@@ -76,6 +81,26 @@ public class TPSController : MonoBehaviour
         Vector3 angles = cameraArm.eulerAngles;
         float pitch = Mathf.Clamp(Mathf.DeltaAngle(0f, angles.x), minPitch, maxPitch);
         cameraArm.rotation = Quaternion.Euler(pitch, angles.y, 0f);
+    }
+
+    void LateUpdate()
+    {
+        float targetDistance = desiredCameraDistance;
+        if (Physics.SphereCast(
+                cameraArm.position, cameraCollisionRadius, -cameraArm.forward, out RaycastHit hit,
+                desiredCameraDistance)
+            && hit.rigidbody != characterRigidbody)
+        {
+            targetDistance = Mathf.Max(hit.distance, minCameraDistance);
+        }
+
+        float currentDistance = -cameraPivot.localPosition.z;
+        float nextDistance = targetDistance < currentDistance
+            ? targetDistance
+            : Mathf.MoveTowards(currentDistance, targetDistance, cameraReturnSpeed * Time.deltaTime);
+
+        if (nextDistance != currentDistance)
+            cameraPivot.localPosition = new Vector3(0f, 0f, -nextDistance);
     }
 
     void FixedUpdate()
