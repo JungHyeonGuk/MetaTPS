@@ -16,10 +16,13 @@ public class TPSController : MonoBehaviour
     [SerializeField] float cameraReturnSpeed = 12f;
     [SerializeField] float jumpSpeed = 6f;
 
+    PhysicsMaterial physicsMaterial;
+    PhysicsMaterialCombine frictionCombine;
     Vector2 moveInput;
     Vector3 moveDir;
     float desiredCameraDistance;
-    bool jumpPressed;
+    float staticFriction, dynamicFriction;
+    bool jumpPressed, touchingWall;
 
     public void SetMoveInput(Vector2 input) => moveInput = input;
     public void RequestJump() => jumpPressed = true;
@@ -36,6 +39,14 @@ public class TPSController : MonoBehaviour
         Vector3 angles = cameraArm.eulerAngles;
         cameraArm.rotation = Quaternion.Euler(
             Mathf.Clamp(Mathf.DeltaAngle(0f, angles.x), minPitch, maxPitch), angles.y, 0f);
+    }
+
+    void Awake()
+    {
+        physicsMaterial = GetComponent<Collider>().material;
+        staticFriction = physicsMaterial.staticFriction;
+        dynamicFriction = physicsMaterial.dynamicFriction;
+        frictionCombine = physicsMaterial.frictionCombine;
     }
 
     void Start()
@@ -77,17 +88,46 @@ public class TPSController : MonoBehaviour
 
     void FixedUpdate()
     {
-        Vector3 velocity = moveDir * moveSpeed;
-        velocity.y = characterRigidbody.linearVelocity.y;
+        bool wall = touchingWall;
+        touchingWall = false;
+
+        bool grounded = Physics.Raycast(
+                            characterRigidbody.position + Vector3.up * 0.2f, Vector3.down, out RaycastHit hit, 0.45f)
+                        && hit.rigidbody != characterRigidbody
+                        && hit.normal.y > 0.35f;
+        bool grip = grounded && !jumpPressed && !wall && characterRigidbody.linearVelocity.y <= 0f;
+
+        physicsMaterial.staticFriction = grip ? staticFriction : 0f;
+        physicsMaterial.dynamicFriction = grip ? dynamicFriction : 0f;
+        physicsMaterial.frictionCombine = grip ? frictionCombine : PhysicsMaterialCombine.Minimum;
+
+        Vector3 velocity = grip
+            ? Vector3.ProjectOnPlane(moveDir * moveSpeed, hit.normal)
+            : moveDir * moveSpeed;
+        if (!grip)
+            velocity.y = characterRigidbody.linearVelocity.y;
 
         if (jumpPressed)
         {
             jumpPressed = false;
-            if (Physics.Raycast(characterRigidbody.position + Vector3.up * 0.2f, Vector3.down, out RaycastHit hit, 0.3f)
-                && hit.rigidbody != characterRigidbody)
+            if (grounded)
                 velocity.y = jumpSpeed;
         }
 
         characterRigidbody.linearVelocity = velocity;
+        if (grip)
+            characterRigidbody.AddForce(hit.normal * Physics.gravity.y, ForceMode.Acceleration);
+    }
+
+    void OnCollisionStay(Collision collision)
+    {
+        for (int i = 0; i < collision.contactCount; i++)
+        {
+            if (collision.GetContact(i).normal.y < 0.35f)
+            {
+                touchingWall = true;
+                return;
+            }
+        }
     }
 }
