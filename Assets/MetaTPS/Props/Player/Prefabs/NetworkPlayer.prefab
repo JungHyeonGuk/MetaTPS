@@ -114,12 +114,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TPSController
   characterBody: {fileID: 2256290571637335641}
-  characterRigidbody: {fileID: 651743592258510664}
   cameraArm: {fileID: 4763759287484372532}
   cameraPivot: {fileID: 522151387689391056}
+  characterRigidbody: {fileID: 651743592258510664}
   animator: {fileID: 4751684099669764071}
-  inputActionAsset: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   lookSensitivity: 0.7
+  mobileLookSensitivity: 0.5
   moveSpeed: 10
   rotationSpeed: 15
   minPitch: -75
