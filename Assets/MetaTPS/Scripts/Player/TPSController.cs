@@ -27,6 +27,7 @@ public class TPSController : MonoBehaviour
     float ignoreLadderUntil;
     bool jumpPressed, touchingWall;
     Ladder ladder;
+    Collider playerCollider;
 
     public void SetMoveInput(Vector2 input) => moveInput = input;
     public void RequestJump() => jumpPressed = true;
@@ -47,7 +48,8 @@ public class TPSController : MonoBehaviour
 
     void Awake()
     {
-        physicsMaterial = GetComponent<Collider>().material;
+        playerCollider = GetComponent<Collider>();
+        physicsMaterial = playerCollider.material;
         staticFriction = physicsMaterial.staticFriction;
         dynamicFriction = physicsMaterial.dynamicFriction;
         frictionCombine = physicsMaterial.frictionCombine;
@@ -66,7 +68,7 @@ public class TPSController : MonoBehaviour
 
     void Update()
     {
-        if (ladder != null && Grounded() && moveInput.y <= 0f)
+        if (ladder != null && ShouldLeaveLadder())
             DropLadder();
 
         bool onLadder = ladder != null;
@@ -113,7 +115,7 @@ public class TPSController : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (ladder != null && Grounded() && moveInput.y <= 0f)
+        if (ladder != null && ShouldLeaveLadder())
             DropLadder();
 
         if (ladder != null)
@@ -137,7 +139,18 @@ public class TPSController : MonoBehaviour
                 return;
             }
 
-            characterRigidbody.linearVelocity = Vector3.up * moveInput.y * ladderSpeed;
+            float climb = moveInput.y * ladderSpeed;
+            if (climb > 0f && transform.position.y >= ladder.TopY)
+            {
+                Vector3 p = characterRigidbody.position;
+                p.y = ladder.TopY + 0.02f;
+                characterRigidbody.position = p;
+                characterRigidbody.linearVelocity = Vector3.zero;
+                DropLadder();
+                return;
+            }
+
+            characterRigidbody.linearVelocity = Vector3.up * climb;
             return;
         }
 
@@ -179,27 +192,46 @@ public class TPSController : MonoBehaviour
 
     void OnTriggerStay(Collider other)
     {
-        if (Time.time < ignoreLadderUntil || ladder != null || (Grounded() && moveInput.y <= 0f))
+        if (Time.time < ignoreLadderUntil || ladder != null || !other.TryGetComponent(out Ladder hit))
+            return;
+        if (Grounded(out RaycastHit ground) && !WantsLadder(hit, ground))
             return;
 
-        other.TryGetComponent(out ladder);
+        ladder = hit;
+        Physics.IgnoreCollision(playerCollider, ladder.TopFloor, true);
     }
 
     void OnTriggerExit(Collider other)
     {
         if (other.TryGetComponent(out Ladder left) && left == ladder)
-            ladder = null;
+            DropLadder();
     }
+
+    bool ShouldLeaveLadder()
+    {
+        if (!Grounded(out RaycastHit ground))
+            return false;
+        return OnTopFloor(ladder, ground) || moveInput.y <= 0f;
+    }
+
+    bool WantsLadder(Ladder hit, RaycastHit ground)
+    {
+        if (OnTopFloor(hit, ground))
+            return moveInput.y < 0f;
+        return moveInput.y > 0f;
+    }
+
+    bool OnTopFloor(Ladder l, RaycastHit ground) => ground.point.y >= l.TopY - 0.35f;
 
     void DropLadder()
     {
+        if (ladder != null)
+            Physics.IgnoreCollision(playerCollider, ladder.TopFloor, false);
         ladder = null;
         characterRigidbody.useGravity = true;
         animator.SetBool("IsLadder", false);
         animator.SetFloat("LadderSpeed", 0f);
     }
-
-    bool Grounded() => Grounded(out _);
 
     bool Grounded(out RaycastHit hit)
     {

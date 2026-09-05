@@ -128,7 +128,7 @@ MonoBehaviour:
   minCameraDistance: 0.15
   cameraReturnSpeed: 12
   jumpSpeed: 12
-  ladderSpeed: 5
+  ladderSpeed: 4
   ladderJumpBack: 2
 --- !u!136 &2695769348877958240
 CapsuleCollider:
