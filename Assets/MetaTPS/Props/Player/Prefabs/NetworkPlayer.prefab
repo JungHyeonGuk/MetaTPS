@@ -124,7 +124,7 @@ MonoBehaviour:
   rotationSpeed: 15
   minPitch: -75
   maxPitch: 80
-  cameraCollisionRadius: 0.2
+  cameraCollisionRadius: 0.04
   minCameraDistance: 0.15
   cameraReturnSpeed: 12
   jumpSpeed: 12

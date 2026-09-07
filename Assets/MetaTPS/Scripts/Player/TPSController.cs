@@ -76,7 +76,7 @@ public class TPSController : MonoBehaviour
 
         if (onLadder)
         {
-            float climb = moveInput.y;
+            float climb = LadderClimb(ladder);
             animator.SetBool("IsMove", Mathf.Abs(climb) > 0.01f);
             animator.SetFloat("LadderSpeed", Mathf.Abs(climb) > 0.01f ? Mathf.Sign(climb) * 1.5f : 0f);
 
@@ -89,9 +89,7 @@ public class TPSController : MonoBehaviour
 
         animator.SetFloat("LadderSpeed", 0f);
 
-        Vector3 forward = Vector3.ProjectOnPlane(cameraArm.forward, Vector3.up).normalized;
-        Vector3 right = Vector3.ProjectOnPlane(cameraArm.right, Vector3.up).normalized;
-        moveDir = Vector3.ClampMagnitude(forward * moveInput.y + right * moveInput.x, 1f);
+        moveDir = CameraMoveDir();
 
         bool isMove = moveDir.sqrMagnitude > 0.01f;
         animator.SetBool("IsMove", isMove);
@@ -139,7 +137,7 @@ public class TPSController : MonoBehaviour
                 return;
             }
 
-            float climb = moveInput.y * ladderSpeed;
+            float climb = LadderClimb(ladder) * ladderSpeed;
             if (climb > 0f && transform.position.y >= ladder.TopY)
             {
                 Vector3 p = characterRigidbody.position;
@@ -211,14 +209,37 @@ public class TPSController : MonoBehaviour
     {
         if (!Grounded(out RaycastHit ground))
             return false;
-        return OnTopFloor(ladder, ground) || moveInput.y <= 0f;
+        return OnTopFloor(ladder, ground) || LadderClimb(ladder) <= 0f;
     }
 
     bool WantsLadder(Ladder hit, RaycastHit ground)
     {
+        float climb = LadderClimb(hit);
         if (OnTopFloor(hit, ground))
-            return moveInput.y < 0f;
-        return moveInput.y > 0f;
+            return climb < 0f;
+        return climb > 0f;
+    }
+
+    Vector3 CameraMoveDir()
+    {
+        Vector3 forward = Vector3.ProjectOnPlane(cameraArm.forward, Vector3.up).normalized;
+        Vector3 right = Vector3.ProjectOnPlane(cameraArm.right, Vector3.up).normalized;
+        return Vector3.ClampMagnitude(forward * moveInput.y + right * moveInput.x, 1f);
+    }
+
+    float LadderClimb(Ladder hit)
+    {
+        Vector3 move = CameraMoveDir();
+        if (move.sqrMagnitude < 0.0001f)
+            return 0f;
+
+        Vector3 toward = Vector3.ProjectOnPlane(hit.transform.position - transform.position, Vector3.up);
+        if (toward.sqrMagnitude < 0.001f)
+            toward = Vector3.ProjectOnPlane(characterBody.forward, Vector3.up);
+        if (toward.sqrMagnitude < 0.001f)
+            return moveInput.y;
+
+        return Vector3.Dot(move, toward.normalized);
     }
 
     bool OnTopFloor(Ladder l, RaycastHit ground) => ground.point.y >= l.TopY - 0.35f;
