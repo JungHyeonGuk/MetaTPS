@@ -40,8 +40,18 @@ public class PlayerInputManager : MonoSingleton<PlayerInputManager>
         rightPointer.Pressed = OnLookDown;
         rightPointer.Dragged = OnLookDrag;
         rightPointer.Released = OnLookUp;
-        jumpPointer.Pressed = _ => tpsController.RequestJump();
+        jumpPointer.Pressed = _ => tpsController?.RequestJump();
         Apply();
+    }
+
+    public void SetController(TPSController controller)
+    {
+        if (tpsController == controller)
+            return;
+
+        tpsController?.SetMoveInput(Vector2.zero);
+        tpsController = controller;
+        tpsController?.SetMoveInput(Vector2.zero);
     }
 
     void OnDisable() => Cursor.lockState = CursorLockMode.None;
@@ -60,7 +70,7 @@ public class PlayerInputManager : MonoSingleton<PlayerInputManager>
 
     void Update()
     {
-        if (inputMode == InputMode.Mobile)
+        if (tpsController == null || inputMode == InputMode.Mobile)
             return;
 
         tpsController.SetMoveInput(moveAction.ReadValue<Vector2>());
@@ -87,7 +97,7 @@ public class PlayerInputManager : MonoSingleton<PlayerInputManager>
 
     void Apply()
     {
-        tpsController.SetMoveInput(Vector2.zero);
+        tpsController?.SetMoveInput(Vector2.zero);
         movePointerId = lookPointerId = -1;
         Cursor.lockState = CursorLockMode.None;
         joystickRoot.gameObject.SetActive(false);
@@ -112,7 +122,7 @@ public class PlayerInputManager : MonoSingleton<PlayerInputManager>
 
         joystickHandle.anchoredPosition = Vector2.zero;
         joystickRoot.gameObject.SetActive(true);
-        tpsController.SetMoveInput(Vector2.zero);
+        tpsController?.SetMoveInput(Vector2.zero);
     }
 
     void OnMoveDrag(PointerEventData e)
@@ -122,7 +132,7 @@ public class PlayerInputManager : MonoSingleton<PlayerInputManager>
 
         Vector2 clamped = Vector2.ClampMagnitude(local, joystickRange);
         joystickHandle.anchoredPosition = clamped;
-        tpsController.SetMoveInput(clamped / joystickRange);
+        tpsController?.SetMoveInput(clamped / joystickRange);
     }
 
     void OnMoveUp(PointerEventData e)
@@ -133,7 +143,7 @@ public class PlayerInputManager : MonoSingleton<PlayerInputManager>
         movePointerId = -1;
         joystickHandle.anchoredPosition = Vector2.zero;
         joystickRoot.gameObject.SetActive(false);
-        tpsController.SetMoveInput(Vector2.zero);
+        tpsController?.SetMoveInput(Vector2.zero);
     }
 
     void OnLookDown(PointerEventData e)
@@ -150,7 +160,7 @@ public class PlayerInputManager : MonoSingleton<PlayerInputManager>
         if (inputMode != InputMode.Mobile || e.pointerId != lookPointerId)
             return;
 
-        tpsController.AddLookDelta(e.position - lastLookPosition, true);
+        tpsController?.AddLookDelta(e.position - lastLookPosition, true);
         lastLookPosition = e.position;
     }
 

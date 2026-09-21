@@ -77,6 +77,8 @@ GameObject:
   - component: {fileID: 2695769348877958240}
   - component: {fileID: 651743592258510664}
   - component: {fileID: 4751684099669764071}
+  - component: {fileID: 565782739079073128}
+  - component: {fileID: 5403258491454048856}
   m_Layer: 0
   m_Name: NetworkPlayer
   m_TagString: Untagged
@@ -202,6 +204,50 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &565782739079073128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5968059787574160659}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 0
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  <InScenePlaced>k__BackingField: 0
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &5403258491454048856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5968059787574160659}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eaf4722a23e46b64fbc04a118bb995fb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkTPSController
+  ShowTopMostFoldoutHeaderGroup: 1
+  tpsController: {fileID: 6546437497763126882}
+  characterBody: {fileID: 2256290571637335641}
+  characterRigidbody: {fileID: 651743592258510664}
+  animator: {fileID: 4751684099669764071}
+  interpolation: 18
 --- !u!1 &8729589846993464780
 GameObject:
   m_ObjectHideFlags: 0

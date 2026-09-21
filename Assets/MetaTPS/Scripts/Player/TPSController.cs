@@ -57,6 +57,15 @@ public class TPSController : MonoBehaviour
 
     void Start()
     {
+        BindLocalCamera();
+        MoveToStartPoint();
+    }
+
+    public void BindLocalCamera()
+    {
+        if (cameraPivot == null || Camera.main == null || Camera.main.transform.parent == cameraPivot)
+            return;
+
         Transform cam = Camera.main.transform;
         cam.SetParent(cameraPivot);
         cam.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
@@ -64,6 +73,26 @@ public class TPSController : MonoBehaviour
             camera.nearClipPlane = Mathf.Min(camera.nearClipPlane, 0.15f);
 
         desiredCameraDistance = Mathf.Abs(cameraPivot.localPosition.z);
+    }
+
+    public void UnbindLocalCamera()
+    {
+        if (Camera.main == null || Camera.main.transform.parent != cameraPivot)
+            return;
+        Camera.main.transform.SetParent(null);
+    }
+
+    public void MoveToStartPoint()
+    {
+        GameObject start = GameObject.Find("StartPoint");
+        Vector3 pos = start != null ? start.transform.position : Vector3.zero;
+        if (characterRigidbody != null)
+        {
+            characterRigidbody.position = pos;
+            characterRigidbody.linearVelocity = Vector3.zero;
+        }
+        else
+            transform.position = pos;
     }
 
     void Update()
