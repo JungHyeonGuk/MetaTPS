@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
 
 public class AuthPanel : PanelBase
 {
@@ -24,9 +23,14 @@ public class AuthPanel : PanelBase
             return;
         }
 
-        await RegisterOrLoadPlayerDataAsync();
+        PlayerData playerData = await CacheManager.Instance.LoadOrRegisterMyPlayerDataAsync();
+        if (playerData == null) 
+        {
+            Debug.LogError("Failed to load player data");
+            return;
+        }
 
-        SystemManager.Instance.ShowPanel("HomePanel"); 
+        LobbyPanelManager.Instance.ShowPanel("HomePanel"); 
     }
 
     void OnDestroy() 
@@ -35,40 +39,5 @@ public class AuthPanel : PanelBase
         {
             _ = Authentication.Instance.SignOutAsync();
         }
-    }
-
-    async Awaitable RegisterOrLoadPlayerDataAsync() 
-    {
-        (bool ok, Exception error, Dictionary<string, object> data) = await CloudSave.Instance.LoadAllPlayerDataAsync(true);
-
-        if (!ok) 
-        {
-            Debug.LogError(error.Message);
-            return;
-        }
-
-        if (data.Count == 0) 
-        {
-            // Register player dictionary
-            data = new() 
-            {
-                { "nickname", $"Player{UnityEngine.Random.Range(1000, 9999)}" },
-                { "avatar", "Default"}
-            };
-
-            (bool ok2, Exception error2) = await CloudSave.Instance.SavePlayerDataAsync(data, true);
-
-            if (!ok2) 
-            {
-                Debug.LogError(error2.Message);
-                return;
-            }
-        }
-
-        Model.Instance.playerData = new PlayerData()
-        {
-            nickname = data["nickname"].ToString(),
-            avatar = data["avatar"].ToString()
-        };
     }
 }

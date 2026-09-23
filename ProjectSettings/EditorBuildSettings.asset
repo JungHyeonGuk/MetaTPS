@@ -6,10 +6,10 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/MetaTPS/Scenes/MetaScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/Meta2TPS/Scenes/LobbyScene.unity
+    guid: 0fbc5cb3942d8864ebcb9dbcb316a846
   - enabled: 1
-    path: Assets/MetaTPS/Scenes/PlaygroundScene.unity
+    path: Assets/Meta2TPS/Scenes/PlaygroundScene.unity
     guid: a0fb42e42e25dc647a47814b251aea47
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

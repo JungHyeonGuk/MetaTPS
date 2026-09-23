@@ -5,14 +5,27 @@ public class ProfileBase : MonoBehaviour
 {
     [SerializeField] Image avatarImage;
     [SerializeField] Text nicknameText;
-    [SerializeField] DB db;
 
 
 
     void OnEnable()
     {
-        nicknameText.text = Model.Instance.playerData.nickname;
-        avatarImage.sprite = db.GetAvatar(Model.Instance.playerData.avatar);
+        CacheManager.Instance.myPlayerDataChanged += OnMyPlayerDataChanged;
+        OnMyPlayerDataChanged(CacheManager.Instance.myPlayerData);
+    }
+
+    void OnDisable()
+    {
+        if (CacheManager.Instance != null) 
+        {
+            CacheManager.Instance.myPlayerDataChanged -= OnMyPlayerDataChanged;
+        }
+    }
+
+    async void OnMyPlayerDataChanged(PlayerData playerData)
+    {
+        nicknameText.text = playerData.nickname;
+        avatarImage.sprite = await CacheManager.Instance.LoadAvatarAsync(playerData.avatarId);
     }
 
 }

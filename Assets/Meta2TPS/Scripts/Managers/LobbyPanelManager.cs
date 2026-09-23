@@ -1,9 +1,9 @@
 using UnityEngine;
-using UnityEngine.UI;
 
-public class SystemManager : MonoSingleton<SystemManager> 
+public class LobbyPanelManager : MonoSingleton<LobbyPanelManager> 
 {
     [SerializeField] PanelBase[] panelBases;
+    [SerializeField] GameObject[] lobbyObjects;
 
 
 
@@ -19,6 +19,14 @@ public class SystemManager : MonoSingleton<SystemManager>
             {
                 panelBase.Hide();
             }
+        }
+    }
+
+    public void ShowLobbyObjects(bool isShow)
+    {
+        foreach (GameObject lobbyObject in lobbyObjects)
+        {
+            lobbyObject.SetActive(isShow);
         }
     }
 

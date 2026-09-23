@@ -1,10 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
-using Newtonsoft.Json.Linq;
-using System.Linq;
 using System.Collections.Generic;
-using System.IO;
-using System;
 
 public class HomePanel : PanelBase 
 {
@@ -15,79 +11,57 @@ public class HomePanel : PanelBase
     List<HomeCard> homeCards = new();
 
 
+
     public override void Init() 
     {
         profileBtn.AddEvent(OnClickProfileBtn);
-        
     }
 
     public override async void InitShow() 
     {
-        await LoadHomeCardCCDAsync();
+        await LoadHomeCardAsync();
     }
 
 
     void OnClickProfileBtn() 
     {
-        Debug.Log("OnClickProfileBtn");
+        LobbyPanelManager.Instance.ShowPanel("ProfilePanel");
     }
 
-    async Awaitable LoadHomeCardCCDAsync() 
+    async Awaitable LoadHomeCardAsync() 
     {
-        (bool ok, Exception error, string homeCardJson) = await CloudContentDelivery.Instance.GetTextAsync("MapCard.json");
-        if (!ok) 
+        MapData[] mapDatas = await CacheManager.Instance.LoadMapDatasAsync();
+        List<Awaitable> loads = new();
+
+        if (mapDatas == null) 
         {
-            Debug.LogError(error.Message);
+            Debug.LogError("LoadMapDatasAsync failed");
             return;
         }
 
-        JObject homeCardJObject = JObject.Parse(homeCardJson);
-        List<JToken> homeCardJTokens = homeCardJObject["mapCards"].ToList();
-        List<Awaitable> loads = new();
-
-        foreach (JToken homeCardJToken in homeCardJTokens) 
+        foreach (MapData mapData in mapDatas) 
         {
-            string title = homeCardJToken["title"].ToString();
-            string id = homeCardJToken["id"].ToString();
-            string imagePath = $"MapThumb/{id}.jpg";
-
             HomeCard homeCard = Instantiate(homeCardPrefab, homeContent).GetComponent<HomeCard>();
-            homeCard.titleText.text = title;
+            homeCard.titleText.text = mapData.title;
+            homeCard.btn.AddEvent(() => OnClickHomeCard(mapData.id));
             homeCards.Add(homeCard);
-            loads.Add(LoadHomeCardSpriteAsync(homeCard, imagePath));
+            loads.Add(LoadHomeCardThumbAsync(homeCard, mapData.id));
         }
     }
 
-    async Awaitable LoadHomeCardSpriteAsync(HomeCard homeCard, string imagePath) 
+    async Awaitable LoadHomeCardThumbAsync(HomeCard homeCard, string mapId) 
     {
-        string imageFilePath = Path.Combine(Application.persistentDataPath, imagePath);
-        Texture2D imageTexture;
-
-        if (File.Exists(imageFilePath)) 
+        Sprite sprite = await CacheManager.Instance.LoadMapThumbAsync(mapId);
+        
+        if (sprite != null) 
         {
-            imageTexture = new Texture2D(2, 2);
-            imageTexture.LoadImage(File.ReadAllBytes(imageFilePath));
+            homeCard.thumbImage.sprite = sprite;
         }
-        else 
-        {
-            (bool ok, Exception error, Texture2D texture) = await CloudContentDelivery.Instance.GetImageAsync(imagePath);
-            if (!ok) 
-            {
-                Debug.LogError(error.Message);
-                return;
-            }
-            imageTexture = texture;
+    }
 
-            string imageDirectoryPath = Path.GetDirectoryName(imageFilePath);
-            if (!Directory.Exists(imageDirectoryPath))
-            {
-                Directory.CreateDirectory(imageDirectoryPath);
-            }
-
-            File.WriteAllBytes(imageFilePath, imageTexture.EncodeToJPG());
-        }
-
-        Sprite imageSprite = Sprite.Create(imageTexture, new Rect(0, 0, imageTexture.width, imageTexture.height), new Vector2(0.5f, 0.5f));
-        homeCard.thumbImage.sprite = imageSprite;
+    void OnClickHomeCard(string mapId) 
+    {
+        Model.Instance.currentMapId = mapId;
+        LobbyPanelManager.Instance.ShowPanel("MapDetailPanel");
     }
 }

@@ -5,7 +5,7 @@ using System;
 
 public class CloudSave : MonoSingleton<CloudSave> 
 {
-    public async Awaitable<(bool ok, Exception error)> SavePlayerDataAsync(Dictionary<string, object> dic, bool isPublic)
+    public async Awaitable<(bool ok, Exception error)> SaveMyPlayerDataAsync(Dictionary<string, object> dic, bool isPublic)
     {
         try
         {
@@ -28,7 +28,7 @@ public class CloudSave : MonoSingleton<CloudSave>
         }
     }
 
-    public async Awaitable<(bool ok, Exception error, T value)> LoadPlayerDataAsync<T>(string key, bool isPublic)
+    public async Awaitable<(bool ok, Exception error, T value)> LoadMyPlayerDataAsync<T>(string key, bool isPublic)
     {
         try
         {
@@ -60,7 +60,7 @@ public class CloudSave : MonoSingleton<CloudSave>
         }
     }
 
-    public async Awaitable<(bool ok, Exception error, Dictionary<string, object> data)> LoadAllPlayerDataAsync(bool isPublic)
+    public async Awaitable<(bool ok, Exception error, Dictionary<string, object> data)> LoadAllMyPlayerDataAsync(bool isPublic)
     {
         try
         {
